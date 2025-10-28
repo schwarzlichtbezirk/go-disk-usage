@@ -1,4 +1,4 @@
-// +build !windows
+//go:build !windows
 
 package du
 
@@ -12,9 +12,11 @@ type DiskUsage struct {
 // NewDiskUsages returns an object holding the disk usage of volumePath
 // or nil in case of error (invalid path, etc)
 func NewDiskUsage(volumePath string) *DiskUsage {
-
+	var err error
 	var stat syscall.Statfs_t
-	syscall.Statfs(volumePath, &stat)
+	if err = syscall.Statfs(volumePath, &stat); err != nil {
+		return nil
+	}
 	return &DiskUsage{&stat}
 }
 

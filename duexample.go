@@ -2,16 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/ricochet2200/go-disk-usage/du"
+
+	"github.com/schwarzlichtbezirk/go-disk-usage/du"
 )
 
-var KB = uint64(1024)
+const MB uint64 = 1024 * 1024
 
 func main() {
-	usage := du.NewDiskUsage(".")
-	fmt.Println("Free:", usage.Free()/(KB*KB))
-	fmt.Println("Available:", usage.Available()/(KB*KB))
-	fmt.Println("Size:", usage.Size()/(KB*KB))
-	fmt.Println("Used:", usage.Used()/(KB*KB))
+	var usage = du.NewDiskUsage(".")
+	if usage == nil {
+		fmt.Println("Can not obtain disk info")
+		return
+	}
+	fmt.Println("Free:", usage.Free()/MB)
+	fmt.Println("Available:", usage.Available()/MB)
+	fmt.Println("Size:", usage.Size()/MB)
+	fmt.Println("Used:", usage.Used()/MB)
 	fmt.Println("Usage:", usage.Usage()*100, "%")
 }

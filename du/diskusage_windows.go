@@ -14,19 +14,25 @@ type DiskUsage struct {
 // NewDiskUsages returns an object holding the disk usage of volumePath
 // or nil in case of error (invalid path, etc)
 func NewDiskUsage(volumePath string) *DiskUsage {
+	var h = syscall.MustLoadDLL("kernel32.dll")
+	var c = h.MustFindProc("GetDiskFreeSpaceExW")
 
-	h := syscall.MustLoadDLL("kernel32.dll")
-	c := h.MustFindProc("GetDiskFreeSpaceExW")
+	var du DiskUsage
 
-	du := &DiskUsage{}
-
-	c.Call(
-		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(volumePath))),
+	var pv, err = syscall.UTF16PtrFromString(volumePath)
+	if err != nil {
+		return nil
+	}
+	var ok, _, _ = c.Call(
+		uintptr(unsafe.Pointer(pv)),
 		uintptr(unsafe.Pointer(&du.freeBytes)),
 		uintptr(unsafe.Pointer(&du.totalBytes)),
 		uintptr(unsafe.Pointer(&du.availBytes)))
+	if ok == 0 {
+		return nil
+	}
 
-	return du
+	return &du
 }
 
 // Free returns total free bytes on file system
