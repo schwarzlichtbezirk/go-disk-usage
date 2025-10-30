@@ -1,54 +1,38 @@
 package du
 
 import (
-	"unsafe"
-
-	"golang.org/x/sys/windows"
+	"golang.org/x/sys/unix"
 )
 
+// DiskUsage contains usage data and provides user-friendly access methods
 type DiskUsage struct {
-	freeBytes  int64
-	totalBytes int64
-	availBytes int64
+	stat *unix.Statfs_t
 }
 
 // NewDiskUsages returns an object holding the disk usage of volumePath
 // or nil in case of error (invalid path, etc)
 func NewDiskUsage(volumePath string) *DiskUsage {
-	var h = windows.MustLoadDLL("kernel32.dll")
-	var c = h.MustFindProc("GetDiskFreeSpaceExW")
-
-	var du DiskUsage
-
-	var pv, err = windows.UTF16PtrFromString(volumePath)
-	if err != nil {
+	var err error
+	var stat unix.Statfs_t
+	if err = unix.Statfs(volumePath, &stat); err != nil {
 		return nil
 	}
-	var ok, _, _ = c.Call(
-		uintptr(unsafe.Pointer(pv)),
-		uintptr(unsafe.Pointer(&du.freeBytes)),
-		uintptr(unsafe.Pointer(&du.totalBytes)),
-		uintptr(unsafe.Pointer(&du.availBytes)))
-	if ok == 0 {
-		return nil
-	}
-
-	return &du
+	return &DiskUsage{&stat}
 }
 
 // Free returns total free bytes on file system
 func (du *DiskUsage) Free() uint64 {
-	return uint64(du.freeBytes)
+	return uint64(du.stat.F_bfree) * uint64(du.stat.F_bsize)
 }
 
-// Available returns total available bytes on file system to an unprivileged user
+// Available return total available bytes on file system to an unprivileged user
 func (du *DiskUsage) Available() uint64 {
-	return uint64(du.availBytes)
+	return uint64(du.stat.F_bavail) * uint64(du.stat.F_bsize)
 }
 
 // Size returns total size of the file system
 func (du *DiskUsage) Size() uint64 {
-	return uint64(du.totalBytes)
+	return uint64(du.stat.F_blocks) * uint64(du.stat.F_bsize)
 }
 
 // Used returns total bytes used in file system

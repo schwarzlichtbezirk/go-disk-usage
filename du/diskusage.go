@@ -1,20 +1,22 @@
-//go:build !windows
+//go:build !windows && !openbsd
 
 package du
 
-import "syscall"
+import (
+	"golang.org/x/sys/unix"
+)
 
 // DiskUsage contains usage data and provides user-friendly access methods
 type DiskUsage struct {
-	stat *syscall.Statfs_t
+	stat *unix.Statfs_t
 }
 
 // NewDiskUsages returns an object holding the disk usage of volumePath
 // or nil in case of error (invalid path, etc)
 func NewDiskUsage(volumePath string) *DiskUsage {
 	var err error
-	var stat syscall.Statfs_t
-	if err = syscall.Statfs(volumePath, &stat); err != nil {
+	var stat unix.Statfs_t
+	if err = unix.Statfs(volumePath, &stat); err != nil {
 		return nil
 	}
 	return &DiskUsage{&stat}
@@ -22,12 +24,12 @@ func NewDiskUsage(volumePath string) *DiskUsage {
 
 // Free returns total free bytes on file system
 func (du *DiskUsage) Free() uint64 {
-	return du.stat.Bfree * uint64(du.stat.Bsize)
+	return uint64(du.stat.Bfree) * uint64(du.stat.Bsize) // compatible with: dragonfly, freebsd
 }
 
 // Available return total available bytes on file system to an unprivileged user
 func (du *DiskUsage) Available() uint64 {
-	return du.stat.Bavail * uint64(du.stat.Bsize)
+	return uint64(du.stat.Bavail) * uint64(du.stat.Bsize) // compatible with: dragonfly, freebsd
 }
 
 // Size returns total size of the file system
